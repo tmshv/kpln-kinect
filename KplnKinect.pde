@@ -4,11 +4,11 @@ import org.openkinect.processing.*;
 Kinect kinect;
 int kinectFrameWidth  = 640;
 int kinectFrameHeight = 480;
-int kinectTiltAngle  =  0;
+int kinectTiltAngle  =  15;
 
 PImage depthImg;
-int minDepth =  350;
-int maxDepth = 830;
+int minDepth =  150;
+int maxDepth = 990;
 
 int blurKernel = 15;
 int blurKernelMax = 30;
