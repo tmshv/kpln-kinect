@@ -8,7 +8,7 @@ int kinectTiltAngle  =  15;
 
 PImage depthImg;
 int minDepth =  150;
-int maxDepth = 990;
+int maxDepth = 890;
 
 int blurKernel = 15;
 int blurKernelMax = 30;
@@ -18,7 +18,8 @@ PImage foreground;
 PImage mask;
 
 void setup() {
-  size(240, 720);
+  fullScreen(2);
+  // size(240, 720);
   //pixelDensity(2);
 
   kinect = new Kinect(this);
@@ -27,24 +28,28 @@ void setup() {
   kinect.tilt(kinectTiltAngle);
 
   depthImg = new PImage(kinectFrameWidth, kinectFrameHeight);
-  mask = new PImage(width, height);
+  mask = new PImage(240, 720);
   
   background = loadImage("background.jpg");
   foreground = loadImage("foreground.jpg");
 }
 
 void draw() {
-  background(255);
+  background(0);
 
   applyThreshold();
 
   int sx = (kinectFrameWidth - mask.width) / 2;
   mask.copy(depthImg, sx, 0, mask.width, kinectFrameHeight, 0, 0, mask.width, mask.height);
 
+  pushMatrix();
+  translate(width, 0);
+  scale(-1, 1);
+
+  // image(mask, 0, 0);
   drawScene();
 
-  // image(depthImg, 0, 0);
-  // image(mask, 0, 0);
+  popMatrix();
 
   drawDebugInfo();
 }
@@ -56,8 +61,10 @@ void drawScene(){
 
   foreground.mask(mask);
   
-  image(background, 0, 0, width, height);
-  image(foreground, 0, 0, width, height);
+  int sx = (width - mask.width) / 2;
+
+  image(background, sx, 0);
+  image(foreground, sx, 0);
 }
 
 void drawDebugInfo(){
