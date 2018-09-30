@@ -85,15 +85,15 @@ void keyPressed() {
   }
   
   else if (key == 'a') {
-    minDepth = constrain(minDepth+10, 0, maxDepth);
-  } else if (key == 's') {
     minDepth = constrain(minDepth-10, 0, maxDepth);
+  } else if (key == 's') {
+    minDepth = constrain(minDepth+10, 0, maxDepth);
   }
   
   else if (key == 'z') {
-    maxDepth = constrain(maxDepth+10, minDepth, 2047);
-  } else if (key =='x') {
     maxDepth = constrain(maxDepth-10, minDepth, 2047);
+  } else if (key =='x') {
+    maxDepth = constrain(maxDepth+10, minDepth, 2047);
   }
   
   else if (key == 'w') {
