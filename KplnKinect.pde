@@ -101,15 +101,15 @@ void keyPressed() {
     kinect.tilt(kinectTiltAngle);
   }
   
-  else if (key == 'a') {
+  else if (key == 'z') {
     minDepth = constrain(minDepth-10, 0, maxDepth);
-  } else if (key == 's') {
+  } else if (key == 'x') {
     minDepth = constrain(minDepth+10, 0, maxDepth);
   }
   
-  else if (key == 'z') {
+  else if (key == 'a') {
     maxDepth = constrain(maxDepth-10, minDepth, 2047);
-  } else if (key =='x') {
+  } else if (key =='s') {
     maxDepth = constrain(maxDepth+10, minDepth, 2047);
   }
   
