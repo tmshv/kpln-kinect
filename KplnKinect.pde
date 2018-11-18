@@ -25,8 +25,6 @@ int[] activeRawDepth;
 PVector kinectActiveFrameStart;
 PVector kinectActiveFrameArea = new PVector(270, kinectFrameHeight);
 
-KinectTracker tracker;
-
 boolean showDebugInfo = false;
 boolean showDebugKinectFrame = false;
 boolean showDebugSegments = false;
@@ -45,7 +43,6 @@ void setup() {
   kinectActiveFrameStart = new PVector((kinectFrameWidth - kinectActiveFrameArea.x) / 2, 0);
   activeRawDepth = new int[(int) (kinectActiveFrameArea.x * kinectActiveFrameArea.y)];
   kinectFrameImage = new PImage((int) kinectActiveFrameArea.x, (int) kinectActiveFrameArea.y);
-  tracker = new KinectTracker(kinectFrameImage.width, kinectFrameImage.height);
   // kinectFrameImage = new PImage(kinectFrameWidth, kinectFrameHeight);
 
   float frameScale = 0.125;
@@ -65,7 +62,6 @@ void draw() {
   kinectFrameImage.loadPixels();
 
   updateKinect();
-  // tracker.track(kinectFrameImage.pixels);
 
   kinectFrameImage.updatePixels();
 
@@ -83,7 +79,6 @@ void draw() {
   if (showDebugKinectFrame) image(kinectFrameImage, 0, 0); 
   if (showDebugSegments) drawDebugSegments();
   // image(mask, 0, 0);
-  // drawSceneDebugInfo();
   popMatrix();
 
   if (showDebugInfo) drawDebugInfo();
@@ -187,14 +182,6 @@ void drawScene(){
 
   image(backgroundImg, sx, 0);
   image(foregroundImg, sx, 0);
-}
-
-void drawSceneDebugInfo(){
-  fill(255, 0, 0);
-  // PVector t = tracker.getPos();
-  PVector t = tracker.getLerpedPos();
-  // t.sub(kinectActiveFrameStart);
-  ellipse(t.x, t.y, 5, 5);
 }
 
 void drawDebugSegments(){
