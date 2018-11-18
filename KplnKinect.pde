@@ -1,11 +1,15 @@
-import org.openkinect.*;
+// import org.openkinect.freenect.*;  // for windows version
+import org.openkinect.*;              // for macos version
 import org.openkinect.processing.*;
 
 KinectController kinect;
 int blurKernelMax = 50;
+int colorThreshold = 200;
 
 int screenNumber = 1; // 1 - notebook display; 2 - big screen
 int segmentTtl = 1;
+float frameScale = 0.125;
+float imageScale = 0.5;
 
 PImage backgroundImg;
 PImage foregroundImg;
@@ -23,8 +27,6 @@ void setup() {
   kinect = new KinectController();
   kinect.initKinect(new Kinect(this));
 
-  float frameScale = 0.125;
-  float imageScale = 0.5;
   foregroundMask = createGraphics(
     (int) (2160 * imageScale),
     (int) (3840 * imageScale)
@@ -75,14 +77,13 @@ void updateSegmentsAndForegroundMask(){
 }
 
 boolean isSegmentInFocus(Segment segment){
-  int c = kinect.frame.get(
+  int c = kinect.getColorAt(
     segment.getCentroidX(),
     segment.getCentroidY()
   );
-
   float r = red(c);
 
-  return r > 200;
+  return r > colorThreshold;
 }
 
 Segment[] loadSegments(String centroids, String polylines, float centroidsScale, float polylinesScale){
@@ -137,10 +138,6 @@ PVector fromJsonArray(JSONArray p, float scale){
     p.getFloat(0) * scale,
     p.getFloat(1) * scale
   );
-}
-
-void runFlock() {
-  
 }
 
 void drawScene(){

@@ -28,8 +28,9 @@ class KinectController {
 
   void initKinect(Kinect value){
     kinect = value;
-    kinect.start();
-    kinect.enableDepth(true);
+    kinect.start(); // comment for windows version
+    // kinect.initDepth(); // for windows version
+    kinect.enableDepth(true); // for macos version
     // kinect.enableMirror(true);
 
     tilt();
@@ -66,11 +67,15 @@ class KinectController {
     }
   }
 
+  int getColorAt(int x, int y){
+    return frame.get(x, y);
+  }
+
   boolean inRange(int value){
     return value >= minDepth && value <= maxDepth;
   }
 
   void stop() {
-    kinect.quit();
+    kinect.quit(); // comment for windows version
   }
 }
