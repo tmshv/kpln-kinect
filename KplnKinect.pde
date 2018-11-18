@@ -1,16 +1,7 @@
 import org.openkinect.*;
 import org.openkinect.processing.*;
 
-Kinect kinect;
-int kinectFrameWidth  = 640;
-int kinectFrameHeight = 480;
-int kinectTiltAngle  =  15;
-
-PImage kinectFrameImage;
-int minDepth =  150;
-int maxDepth = 890;
-
-int blurKernel = 10;
+KinectController kinect;
 int blurKernelMax = 50;
 
 int screenNumber = 1; // 1 - notebook display; 2 - big screen
@@ -19,11 +10,6 @@ int segmentTtl = 1;
 PImage backgroundImg;
 PImage foregroundImg;
 PGraphics foregroundMask;
-
-int[] kinectRawDepth;
-int[] activeRawDepth;
-PVector kinectActiveFrameStart;
-PVector kinectActiveFrameArea = new PVector(270, kinectFrameHeight);
 
 boolean showDebugInfo = false;
 boolean showDebugKinectFrame = false;
@@ -34,16 +20,8 @@ Segment[] segments;
 void setup() {
   fullScreen(P3D, screenNumber);
 
-  kinect = new Kinect(this);
-  kinect.start();
-  kinect.enableDepth(true);
-  // kinect.enableMirror(true);
-  kinect.tilt(kinectTiltAngle);
-
-  kinectActiveFrameStart = new PVector((kinectFrameWidth - kinectActiveFrameArea.x) / 2, 0);
-  activeRawDepth = new int[(int) (kinectActiveFrameArea.x * kinectActiveFrameArea.y)];
-  kinectFrameImage = new PImage((int) kinectActiveFrameArea.x, (int) kinectActiveFrameArea.y);
-  // kinectFrameImage = new PImage(kinectFrameWidth, kinectFrameHeight);
+  kinect = new KinectController();
+  kinect.initKinect(new Kinect(this));
 
   float frameScale = 0.125;
   float imageScale = 0.5;
@@ -59,24 +37,15 @@ void setup() {
 void draw() {
   background(200);
 
-  kinectFrameImage.loadPixels();
-
-  updateKinect();
-
-  kinectFrameImage.updatePixels();
-
-  kinectFrameImage.filter(BLUR, blurKernel);
-
-  // int sx = (kinectFrameWidth - mask.width) / 2;
-  // mask.copy(kinectFrameImage, sx, 0, mask.width, kinectFrameHeight, 0, 0, mask.width, mask.height);
-
+  kinect.update();
+  
   pushMatrix();
   // translate(width, 0);
   // scale(-1, 1);
   updateSegmentsAndForegroundMask();
   drawScene();
   // image(kinectRawDepth, 0, 0);
-  if (showDebugKinectFrame) image(kinectFrameImage, 0, 0); 
+  if (showDebugKinectFrame) image(kinect.frame, 0, 0); 
   if (showDebugSegments) drawDebugSegments();
   // image(mask, 0, 0);
   popMatrix();
@@ -106,7 +75,7 @@ void updateSegmentsAndForegroundMask(){
 }
 
 boolean isSegmentInFocus(Segment segment){
-  int c = kinectFrameImage.get(
+  int c = kinect.frame.get(
     segment.getCentroidX(),
     segment.getCentroidY()
   );
@@ -204,11 +173,11 @@ void drawDebugSegments(){
 void drawDebugInfo(){
   fill(100);
   int pos = 20;
-  text("(Q/W)BLUR: " + blurKernel, 10, pos); pos += 20;
   text("(R/E) TTL: " + segmentTtl, 10, pos); pos += 20;
-  text("(A/S) MAX DEPTH: " + maxDepth, 10, pos); pos += 20;
-  text("(Z/X) MIN DEPTH: " + minDepth, 10, pos); pos += 20;
-  text("TILT: " + kinectTiltAngle, 10, pos); pos += 20;
+  text("(Q/W)BLUR: " + kinect.blurKernel, 10, pos); pos += 20;
+  text("(A/S) MAX DEPTH: " + kinect.maxDepth, 10, pos); pos += 20;
+  text("(Z/X) MIN DEPTH: " + kinect.minDepth, 10, pos); pos += 20;
+  text("TILT: " + kinect.tiltAngle, 10, pos); pos += 20;
 }
 
 void updateSegmentsTtl(){
@@ -217,69 +186,33 @@ void updateSegmentsTtl(){
   }
 }
 
-void updateKinect(){
-  kinectRawDepth = kinect.getRawDepth();
-
-  int frameWidth = (int) kinectActiveFrameArea.x;
-  int frameHeight = (int) kinectActiveFrameArea.y;
-  int startX = (int) kinectActiveFrameStart.x;
-  // int startX = (int) map(mouseX, 0, width, 0, kinectFrameWidth - kinectActiveFrameArea.x);
-  int startY = (int) kinectActiveFrameStart.y;
-
-  // int size = kinectFrameWidth * kinectFrameHeight;
-  // for (int i=0; i<size; i ++){
-  //   int v = (int) map(kinectRawDepth[i], 0, 4500, 0, 255);
-  //   kinectFrameImage.pixels[i] = color(v, v, v);
-  // }
-
-  for(int x = 0; x < frameWidth; x++) {
-    for(int y = 0; y < frameHeight; y++) {
-      int rx = startX + x;
-      int ry = startY + y;
-
-      int frameOffset = x + frameWidth * y;
-      int rawDepthOffset = rx + kinectFrameWidth * ry;
-
-      int depth = kinectRawDepth[rawDepthOffset];
-      int c = inRange(depth) ? 0xFFFFFFFF : 0;
-      // int v = (int) map(depth, 0, 2048, 0, 255);
-      // int c = color(v, v, v);
-      kinectFrameImage.pixels[frameOffset] = c;
-    }
-  }
-}
-
-boolean inRange(int value){
-  return value >= minDepth && value <= maxDepth;
-}
-
 void keyPressed() {
   if (key == CODED) {
     if (keyCode == UP) {
-      kinectTiltAngle ++;
+      kinect.tiltAngle ++;
     } else if (keyCode == DOWN) {
-      kinectTiltAngle --;
+      kinect.tiltAngle --;
     }
-    kinectTiltAngle = constrain(kinectTiltAngle, 0, 30);
-    kinect.tilt(kinectTiltAngle);
+    kinect.tiltAngle = constrain(kinect.tiltAngle, 0, 30);
+    kinect.tilt();
   }
   
   else if (key == 'z') {
-    minDepth = constrain(minDepth-10, 0, maxDepth);
+    kinect.minDepth = constrain(kinect.minDepth-10, 0, kinect.maxDepth);
   } else if (key == 'x') {
-    minDepth = constrain(minDepth+10, 0, maxDepth);
+    kinect.minDepth = constrain(kinect.minDepth+10, 0, kinect.maxDepth);
   }
   
   else if (key == 'a') {
-    maxDepth = constrain(maxDepth-10, minDepth, 2047);
+    kinect.maxDepth = constrain(kinect.maxDepth-10, kinect.minDepth, 2047);
   } else if (key =='s') {
-    maxDepth = constrain(maxDepth+10, minDepth, 2047);
+    kinect.maxDepth = constrain(kinect.maxDepth+10, kinect.minDepth, 2047);
   }
   
   else if (key == 'w') {
-    blurKernel = constrain(blurKernel+1, 0, blurKernelMax);
+    kinect.blurKernel = constrain(kinect.blurKernel+1, 0, blurKernelMax);
   } else if (key == 'q') {
-    blurKernel = constrain(blurKernel-1, 0, blurKernelMax);
+    kinect.blurKernel = constrain(kinect.blurKernel-1, 0, blurKernelMax);
   }
 
   else if (key == 'r') {
@@ -302,6 +235,6 @@ void keyPressed() {
 }
 
 void stop() {
-  kinect.quit();
+  kinect.stop();
   super.stop();
 }
