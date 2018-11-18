@@ -36,8 +36,8 @@ class KinectTracker {
     for(int x = 0; x < kw; x++) {
       for(int y = 0; y < kh; y++) {
         // Mirroring the image
-        // int offset = kw - x - 1 + (y * kw);
-        int offset = x + kw * y;
+        // int offset = kw - x - 1 + (kw * y);
+        int offset = x + (kw * y);
 
         // Grabbing the raw depth
         int rawDepth = depth[offset];
