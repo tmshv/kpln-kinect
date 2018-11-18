@@ -6,16 +6,16 @@ int kinectFrameWidth  = 640;
 int kinectFrameHeight = 480;
 int kinectTiltAngle  =  15;
 
-PImage activeImage;
+PImage kinectFrameImage;
 int minDepth =  150;
 int maxDepth = 890;
 
-int blurKernel = 15;
+int blurKernel = 10;
 int blurKernelMax = 50;
 
-PImage background;
-PImage foreground;
-PImage mask;
+PImage backgroundImg;
+PImage foregroundImg;
+PGraphics foregroundMask;
 
 int[] kinectRawDepth;
 int[] activeRawDepth;
@@ -24,11 +24,16 @@ PVector kinectActiveFrameArea = new PVector(270, kinectFrameHeight);
 
 KinectTracker tracker;
 
+boolean showDebugKinectFrame = false;
+boolean showDebugSegments = false;
+
+Segment[] segments;
+
 void setup() {
   fullScreen(P3D);
   // fullScreen(P3D, 2);
   // size(240, 720);
-  pixelDensity(2);
+  // pixelDensity(2);
 
   kinect = new Kinect(this);
   kinect.start();
@@ -38,61 +43,178 @@ void setup() {
 
   kinectActiveFrameStart = new PVector((kinectFrameWidth - kinectActiveFrameArea.x) / 2, 0);
   activeRawDepth = new int[(int) (kinectActiveFrameArea.x * kinectActiveFrameArea.y)];
-  activeImage = new PImage((int) kinectActiveFrameArea.x, (int) kinectActiveFrameArea.y);
-  tracker = new KinectTracker(activeImage.width, activeImage.height);
-  // activeImage = new PImage(kinectFrameWidth, kinectFrameHeight);
+  kinectFrameImage = new PImage((int) kinectActiveFrameArea.x, (int) kinectActiveFrameArea.y);
+  tracker = new KinectTracker(kinectFrameImage.width, kinectFrameImage.height);
+  // kinectFrameImage = new PImage(kinectFrameWidth, kinectFrameHeight);
 
-  background = loadImage("background.jpg");
-  foreground = loadImage("foreground.jpg");
-
-  mask = new PImage(240, 720);
+  float frameScale = 0.125;
+  float imageScale = 1;//0.25;
+  foregroundMask = createGraphics(
+    (int) (2160 * imageScale),
+    (int) (3840 * imageScale)
+  );
+  segments = loadSegments("centroids.json", "polylines.json", frameScale, imageScale);
+  backgroundImg = loadImg("background.jpg", imageScale);
+  foregroundImg = loadImg("foreground.jpg", imageScale);
 }
 
 void draw() {
   background(200);
 
-  activeImage.loadPixels();
+  kinectFrameImage.loadPixels();
 
   updateKinect();
-  tracker.track(activeImage.pixels);
+  // tracker.track(kinectFrameImage.pixels);
 
-  activeImage.updatePixels();
+  kinectFrameImage.updatePixels();
+
+  kinectFrameImage.filter(BLUR, blurKernel);
 
   // int sx = (kinectFrameWidth - mask.width) / 2;
-  // mask.copy(activeImage, sx, 0, mask.width, kinectFrameHeight, 0, 0, mask.width, mask.height);
+  // mask.copy(kinectFrameImage, sx, 0, mask.width, kinectFrameHeight, 0, 0, mask.width, mask.height);
 
   pushMatrix();
-  translate(width, 0);
-  scale(-1, 1);
-
-  // image(kinectRawDepth, 0, 0);
-  // image(activeImage, 0, 0);
-  // image(mask, 0, 0);
+  // translate(width, 0);
+  // scale(-1, 1);
+  drawForegroundMask();
   drawScene();
-  drawSceneDebugInfo();
-
+  // image(kinectRawDepth, 0, 0);
+  if (showDebugKinectFrame) image(kinectFrameImage, 0, 0); 
+  if (showDebugSegments) drawDebugSegments();
+  // image(mask, 0, 0);
+  // drawSceneDebugInfo();
   popMatrix();
 
   drawDebugInfo();
 }
 
-void drawScene(){
-  PImage mask = activeImage.copy();
-  mask.resize(foreground.width, foreground.height);
-  mask.filter(BLUR, blurKernel);
+void drawForegroundMask(){
+  foregroundMask.beginDraw();
+  foregroundMask.background(0);
+  foregroundMask.noStroke();
+  foregroundMask.fill(255);
 
-  foreground.mask(mask);
+  for(Segment segment : segments){
+    if(isActiveSegment(segment)){
+      segment.drawTo(foregroundMask);
+    }
+  }   
+
+  foregroundMask.endDraw();
+}
+
+boolean isActiveSegment(Segment segment){
+  int c = kinectFrameImage.get(
+    segment.getCentroidX(),
+    segment.getCentroidY()
+  );
+
+  float r = red(c);
+
+  return r > 200;
+}
+
+Segment[] loadSegments(String centroids, String polylines, float centroidsScale, float polylinesScale){
+  JSONArray cs = loadJSONArray(centroids);
+
+  Segment[] result = new Segment[cs.size()];
+
+  for (int i = 0; i < cs.size(); i++) {
+    JSONArray a = cs.getJSONArray(i);
+
+    Segment s = new Segment();
+    s.setCentroid(
+      fromJsonArray(a, centroidsScale)
+    );
+
+    result[i] = s;
+  }
+
+  JSONArray ps = loadJSONArray(polylines);
+
+  for (int i = 0; i < cs.size(); i++) {
+    JSONArray pl = ps.getJSONArray(i);
+
+    Segment s = result[i];
+    PVector[] polyline = new PVector[pl.size()];
+
+    for (int j = 0; j < pl.size(); j++) {
+      JSONArray p = pl.getJSONArray(j);
+      polyline[j] = fromJsonArray(p, polylinesScale);
+    }
+
+    s.setPolyline(polyline);
+  }
+
+  return result;
+}
+
+PImage loadImg(String filepath, float scale){
+  PImage img = loadImage(filepath);
+  if (scale != 1) {
+    img.resize(
+      (int) (img.width * scale),
+      (int) (img.height * scale)
+    );
+  }
+
+  return img;
+}
+
+PVector fromJsonArray(JSONArray p, float scale){
+  return new PVector(
+    p.getFloat(0) * scale,
+    p.getFloat(1) * scale
+  );
+}
+
+void runFlock() {
   
-  int sx = (width - mask.width) / 2;
+}
 
-  image(background, sx, 0);
-  image(foreground, sx, 0);
+void drawScene(){
+  // foregroundMask.beginDraw();
+  // foregroundMask.background(0);
+  // foregroundMask.fill(255);
+  // foregroundMask.rect(20, 20, 100, 100);
+  // foregroundMask.endDraw();
+
+  // PImage mask = kinectFrameImage.copy();
+  // foregroundMask.resize(foregroundImg.width, foregroundImg.height);
+  // mask.filter(BLUR, blurKernel);
+
+  foregroundImg.mask(foregroundMask);
+  
+  // // int sx = (width - mask.width) / 2;
+  int sx = 0;
+
+  image(backgroundImg, sx, 0);
+  image(foregroundImg, sx, 0);
 }
 
 void drawSceneDebugInfo(){
   fill(255, 0, 0);
-  PVector t = tracker.getPos();
+  // PVector t = tracker.getPos();
+  PVector t = tracker.getLerpedPos();
+  // t.sub(kinectActiveFrameStart);
   ellipse(t.x, t.y, 5, 5);
+}
+
+void drawDebugSegments(){
+  for(Segment segment : segments){
+    stroke(200, 0, 0);
+    PVector centroid = segment.getCentroid();
+    point(centroid.x, centroid.y);
+
+    PVector[] pl = segment.getPolyline();
+    stroke(0, 200, 0);
+    noFill();
+    beginShape();
+    for(PVector v : pl) {
+      vertex(v.x, v.y);
+    }
+    endShape();
+  }
 }
 
 void drawDebugInfo(){
@@ -115,7 +237,7 @@ void updateKinect(){
   // int size = kinectFrameWidth * kinectFrameHeight;
   // for (int i=0; i<size; i ++){
   //   int v = (int) map(kinectRawDepth[i], 0, 4500, 0, 255);
-  //   activeImage.pixels[i] = color(v, v, v);
+  //   kinectFrameImage.pixels[i] = color(v, v, v);
   // }
 
   for(int x = 0; x < frameWidth; x++) {
@@ -130,7 +252,7 @@ void updateKinect(){
       int c = inRange(depth) ? 0xFFFFFFFF : 0;
       // int v = (int) map(depth, 0, 2048, 0, 255);
       // int c = color(v, v, v);
-      activeImage.pixels[frameOffset] = c;
+      kinectFrameImage.pixels[frameOffset] = c;
     }
   }
 }
@@ -166,6 +288,13 @@ void keyPressed() {
     blurKernel = constrain(blurKernel+1, 0, blurKernelMax);
   } else if (key == 'q') {
     blurKernel = constrain(blurKernel-1, 0, blurKernelMax);
+  }
+
+  else if (key == '1') {
+    showDebugKinectFrame = !showDebugKinectFrame;
+  }
+  else if (key == '2') {
+    showDebugSegments = !showDebugSegments;
   }
 }
 

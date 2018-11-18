@@ -6,6 +6,8 @@ class KinectTracker {
 
   float lerpFactor = 0.1;
 
+  float angle;
+
   // Raw location
   PVector loc;
 
@@ -41,7 +43,6 @@ class KinectTracker {
         int rawDepth = depth[offset];
 
         // Testing against threshold
-        // if (rawDepth < threshold) {
         if (rawDepth != 0) {
           sumX += x;
           sumY += y;
@@ -56,11 +57,17 @@ class KinectTracker {
       loc.set(sumX/count, sumY/count);
     }
 
+    angle = PVector.angleBetween(loc, lerpedLoc);
+
     // Interpolating the location, doing it arbitrarily for now
     lerpedLoc.set(
       PApplet.lerp(lerpedLoc.x, loc.x, lerpFactor),
       PApplet.lerp(lerpedLoc.y, loc.y, lerpFactor)
     );
+  }
+
+  float getAngle() {
+    return angle;
   }
 
   PVector getLerpedPos() {
