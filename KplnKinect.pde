@@ -13,6 +13,8 @@ int maxDepth = 890;
 int blurKernel = 10;
 int blurKernelMax = 50;
 
+int segmentTtl = 1;
+
 PImage backgroundImg;
 PImage foregroundImg;
 PGraphics foregroundMask;
@@ -24,6 +26,7 @@ PVector kinectActiveFrameArea = new PVector(270, kinectFrameHeight);
 
 KinectTracker tracker;
 
+boolean showDebugInfo = false;
 boolean showDebugKinectFrame = false;
 boolean showDebugSegments = false;
 
@@ -48,7 +51,7 @@ void setup() {
   // kinectFrameImage = new PImage(kinectFrameWidth, kinectFrameHeight);
 
   float frameScale = 0.125;
-  float imageScale = 1;//0.25;
+  float imageScale = 0.25;
   foregroundMask = createGraphics(
     (int) (2160 * imageScale),
     (int) (3840 * imageScale)
@@ -76,7 +79,7 @@ void draw() {
   pushMatrix();
   // translate(width, 0);
   // scale(-1, 1);
-  drawForegroundMask();
+  updateSegmentsAndForegroundMask();
   drawScene();
   // image(kinectRawDepth, 0, 0);
   if (showDebugKinectFrame) image(kinectFrameImage, 0, 0); 
@@ -85,25 +88,31 @@ void draw() {
   // drawSceneDebugInfo();
   popMatrix();
 
-  drawDebugInfo();
+  if (showDebugInfo) drawDebugInfo();
 }
 
-void drawForegroundMask(){
+void updateSegmentsAndForegroundMask(){
   foregroundMask.beginDraw();
   foregroundMask.background(0);
-  foregroundMask.noStroke();
+  foregroundMask.stroke(255);
   foregroundMask.fill(255);
 
   for(Segment segment : segments){
-    if(isActiveSegment(segment)){
-      segment.drawTo(foregroundMask);
+    if(isSegmentInFocus(segment)){
+      segment.activate();
     }
-  }   
+
+    if(segment.isActive()){
+      segment.drawTo(foregroundMask);      
+    }
+
+    segment.update();
+  }
 
   foregroundMask.endDraw();
 }
 
-boolean isActiveSegment(Segment segment){
+boolean isSegmentInFocus(Segment segment){
   int c = kinectFrameImage.get(
     segment.getCentroidX(),
     segment.getCentroidY()
@@ -122,7 +131,7 @@ Segment[] loadSegments(String centroids, String polylines, float centroidsScale,
   for (int i = 0; i < cs.size(); i++) {
     JSONArray a = cs.getJSONArray(i);
 
-    Segment s = new Segment();
+    Segment s = new Segment(segmentTtl);
     s.setCentroid(
       fromJsonArray(a, centroidsScale)
     );
@@ -218,11 +227,19 @@ void drawDebugSegments(){
 }
 
 void drawDebugInfo(){
-  fill(255);
+  fill(100);
   int pos = 20;
-  text("THRESHOLD: [" + minDepth + ", " + maxDepth + "]", 10, pos); pos += 20;
-  text("BLUR: " + blurKernel, 10, pos); pos += 20;
-  //text("TILT: " + kinectTiltAngle, 10, pos); pos += 20;
+  text("(Q/W)BLUR: " + blurKernel, 10, pos); pos += 20;
+  text("(R/E) TTL: " + segmentTtl, 10, pos); pos += 20;
+  text("(A/S) MAX DEPTH: " + maxDepth, 10, pos); pos += 20;
+  text("(Z/X) MIN DEPTH: " + minDepth, 10, pos); pos += 20;
+  text("TILT: " + kinectTiltAngle, 10, pos); pos += 20;
+}
+
+void updateSegmentsTtl(){
+  for(Segment s : segments){
+    s.setActiveTtl(segmentTtl);
+  }
 }
 
 void updateKinect(){
@@ -290,10 +307,21 @@ void keyPressed() {
     blurKernel = constrain(blurKernel-1, 0, blurKernelMax);
   }
 
+  else if (key == 'r') {
+    segmentTtl = constrain(segmentTtl+1, 1, 1000000);
+    updateSegmentsTtl();
+  } else if (key == 'e') {
+    segmentTtl = constrain(segmentTtl-1, 1, 1000000);
+    updateSegmentsTtl();
+  }
+
   else if (key == '1') {
-    showDebugKinectFrame = !showDebugKinectFrame;
+    showDebugInfo = !showDebugInfo;
   }
   else if (key == '2') {
+    showDebugKinectFrame = !showDebugKinectFrame;
+  }
+  else if (key == '3') {
     showDebugSegments = !showDebugSegments;
   }
 }
