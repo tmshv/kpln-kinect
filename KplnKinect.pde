@@ -13,6 +13,7 @@ int maxDepth = 890;
 int blurKernel = 10;
 int blurKernelMax = 50;
 
+int screenNumber = 1; // 1 - notebook display; 2 - big screen
 int segmentTtl = 1;
 
 PImage backgroundImg;
@@ -33,10 +34,7 @@ boolean showDebugSegments = false;
 Segment[] segments;
 
 void setup() {
-  fullScreen(P3D);
-  // fullScreen(P3D, 2);
-  // size(240, 720);
-  // pixelDensity(2);
+  fullScreen(P3D, screenNumber);
 
   kinect = new Kinect(this);
   kinect.start();
@@ -51,7 +49,7 @@ void setup() {
   // kinectFrameImage = new PImage(kinectFrameWidth, kinectFrameHeight);
 
   float frameScale = 0.125;
-  float imageScale = 0.25;
+  float imageScale = 0.5;
   foregroundMask = createGraphics(
     (int) (2160 * imageScale),
     (int) (3840 * imageScale)
@@ -182,16 +180,6 @@ void runFlock() {
 }
 
 void drawScene(){
-  // foregroundMask.beginDraw();
-  // foregroundMask.background(0);
-  // foregroundMask.fill(255);
-  // foregroundMask.rect(20, 20, 100, 100);
-  // foregroundMask.endDraw();
-
-  // PImage mask = kinectFrameImage.copy();
-  // foregroundMask.resize(foregroundImg.width, foregroundImg.height);
-  // mask.filter(BLUR, blurKernel);
-
   foregroundImg.mask(foregroundMask);
   
   // // int sx = (width - mask.width) / 2;
