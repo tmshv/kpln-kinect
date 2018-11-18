@@ -9,7 +9,7 @@ int colorThreshold = 200;
 int screenNumber = 1; // 1 - notebook display; 2 - big screen
 int segmentTtl = 1;
 float frameScale = 0.125;
-float imageScale = 0.5;
+float imageScale = 0.25;
 
 PImage backgroundImg;
 PImage foregroundImg;
@@ -170,11 +170,14 @@ void drawDebugSegments(){
 void drawDebugInfo(){
   fill(100);
   int pos = 20;
-  text("(R/E) TTL: " + segmentTtl, 10, pos); pos += 20;
-  text("(Q/W)BLUR: " + kinect.blurKernel, 10, pos); pos += 20;
-  text("(A/S) MAX DEPTH: " + kinect.maxDepth, 10, pos); pos += 20;
-  text("(Z/X) MIN DEPTH: " + kinect.minDepth, 10, pos); pos += 20;
-  text("TILT: " + kinect.tiltAngle, 10, pos); pos += 20;
+  int s = 10;
+  text("(R/E) TTL: " + segmentTtl, s, pos); pos += 20;
+  text("(Q/W) BLUR: " + kinect.blurKernel, s, pos); pos += 20;
+  text("(A/S) MAX DEPTH: " + kinect.maxDepth, s, pos); pos += 20;
+  text("(Z/X) MIN DEPTH: " + kinect.minDepth, s, pos); pos += 20;
+  text("(D) MIRROR X: " + kinect.mirrorX, s, pos); pos += 20;
+  text("(F) MIRROR Y: " + kinect.mirrorY, s, pos); pos += 20;
+  text("(↑/↓) TILT: " + kinect.tiltAngle, s, pos); pos += 20;
 }
 
 void updateSegmentsTtl(){
@@ -218,6 +221,13 @@ void keyPressed() {
   } else if (key == 'e') {
     segmentTtl = constrain(segmentTtl-1, 1, 1000000);
     updateSegmentsTtl();
+  }
+
+  else if (key == 'd') {
+    kinect.toggleMirrorX();
+  }
+  else if (key == 'f') {
+    kinect.toggleMirrorY();
   }
 
   else if (key == '1') {

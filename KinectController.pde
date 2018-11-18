@@ -15,7 +15,10 @@ class KinectController {
 
   int blurKernel = 10;
 
-  int[] kinectRawDepth;
+  int[] rawDepth;
+
+  boolean mirrorX = true;
+  boolean mirrorY = false;
 
   KinectController() {
     activeFrameStartX = (width - activeFrameWidth) / 2;
@@ -48,23 +51,32 @@ class KinectController {
   }
 
   void updateKinect(){
-    kinectRawDepth = kinect.getRawDepth();
+    rawDepth = kinect.getRawDepth();
 
     for(int x = 0; x < activeFrameWidth; x++) {
       for(int y = 0; y < activeFrameHeight; y++) {
-        int rx = activeFrameStartX + x;
-        int ry = activeFrameStartY + y;
+        int rawX = getRawX(x);
+        int rawY = getRawY(y);
 
         int frameOffset = x + activeFrameWidth * y;
-        int rawDepthOffset = rx + width * ry;
+        int rawDepthOffset = rawX + width * rawY;
+        int depth = rawDepth[rawDepthOffset];
 
-        int depth = kinectRawDepth[rawDepthOffset];
-        int c = inRange(depth) ? 0xFFFFFFFF : 0;
-        // int v = (int) map(depth, 0, 2048, 0, 255);
-        // int c = color(v, v, v);
-        frame.pixels[frameOffset] = c;
+        frame.pixels[frameOffset] = inRange(depth) ? 0xFFFFFFFF : 0;
       }
     }
+  }
+
+  int getRawX(int value){
+    return mirrorX
+      ? activeFrameStartX + (activeFrameWidth - 1 - value)
+      : activeFrameStartX + value;
+  }
+
+  int getRawY(int value){
+    return mirrorY
+      ? activeFrameStartY + (activeFrameHeight - 1 - value)
+      : activeFrameStartY + value;
   }
 
   int getColorAt(int x, int y){
@@ -73,6 +85,14 @@ class KinectController {
 
   boolean inRange(int value){
     return value >= minDepth && value <= maxDepth;
+  }
+
+  void toggleMirrorX() {
+    mirrorX = !mirrorX;
+  }
+
+  void toggleMirrorY() {
+    mirrorY = !mirrorY;
   }
 
   void stop() {
